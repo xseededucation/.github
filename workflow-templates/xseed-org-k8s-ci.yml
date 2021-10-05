@@ -1,4 +1,4 @@
-name: XSEED Organization Workflow
+name: XSEED Org k8s CI
 
 on:
   push:

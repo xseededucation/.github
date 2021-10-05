@@ -1,5 +1,5 @@
 {
-  "name": "XSEED Organization Workflow",
+  "name": "XSEED Org k8s CI",
   "description": "XSEED Organization CI workflow template.",
   "iconName": "example-icon",
   "categories": [
