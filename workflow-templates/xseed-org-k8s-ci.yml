@@ -1,4 +1,4 @@
-name: XSEED Organization CI
+name: XSEED Organization Workflow
 
 on:
   push:

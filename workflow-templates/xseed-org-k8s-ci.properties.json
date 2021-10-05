@@ -1,0 +1,13 @@
+{
+  "name": "XSEED Organization Workflow",
+  "description": "XSEED Organization CI workflow template.",
+  "iconName": "example-icon",
+  "categories": [
+      "NodeJS"
+  ],
+  "filePatterns": [
+      "package.json$",
+      "^Dockerfile",
+      ".*\\.md$"
+  ]
+}
