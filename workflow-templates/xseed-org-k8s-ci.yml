@@ -1,9 +1,6 @@
-name: XSEED Org k8s CI
-
+name: PLACEHOLDER_WORKFLOW_NAME
 on:
   push:
-    branches: [ $default-branch ]
-  pull_request:
     branches: [ $default-branch ]
   
   workflow_dispatch:
@@ -12,13 +9,135 @@ on:
         description: 'Env (staging/prep/qa)'     
         required: true
         default: 'staging'
+      
+env:
+  GITHUB_SHA: ${{ github.sha }}
+  IMAGE: 'PLACEHOLDER_IMAGE_NAME' # Eg. caa, notification-backend-service
+  GKE_IMAGE_PROJECT: ${{ secrets.ORG_GCP_IMAGE_PROJECT }}
+  GKE_IMAGE_PROJECT_KEY: ${{ secrets.ORG_GCP_IMAGE_PROJECT_KEY }}
+  GKE_IMAGE_PROJECT_EMAIL: ${{ secrets.ORG_GCP_IMAGE_PROJECT_EMAIL }}
+  REGISTRY_HOSTNAME: ${{ secrets.ORG_DOCKER_REGISTRY_HOSTNAME }}
+  NPM_GITHUB_REGISTRY_TOKEN: ${{ secrets.ORG_NPM_GITHUB_REGISTRY_TOKEN }}
+  infraEnv: ${{github.event.inputs.infraEnv}}
 
 jobs:
-  build:
+  setup-build-publish:
+    name: Test, Build, Deploy, Notify
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Create .npmrc file
+        run: 'echo -e "//npm.pkg.github.com/:_authToken=${{env.NPM_GITHUB_REGISTRY_TOKEN}} \n@xseededucation:registry=https://npm.pkg.github.com/" > /home/runner/work/caa/caa/.npmrc'
+        shell: bash
 
-      - name: Run a one-line script
-        run: echo Hello from Octo Organization
+      - name: Generate outputs for secret keys
+        id: secretKeys
+        run: |
+          echo ::set-output name=GKE_PROJECT_CREDENTIALS_KEY::${{env.infraEnv}}_google_service_account_key
+          echo ::set-output name=GKE_CLUSTER_KEY::${{env.infraEnv}}_gke_cluster
+          echo ::set-output name=GOOGLE_APP_CREDENTIALS_KEY::${{env.infraEnv}}_app_service_account_key
+
+      - name: Initialize GitHub workflow variables for NON-PROD environment
+        run: |
+          echo "${{secrets[steps.secretKeys.outputs.GKE_PROJECT_CREDENTIALS_KEY]}}"
+          echo "DEPLOYMENT_ENVIRONMENT=${{env.infraEnv}}" >> $GITHUB_ENV
+          echo "GKE_PROJECT_CREDENTIALS=${{secrets[steps.secretKeys.outputs.GKE_PROJECT_CREDENTIALS_KEY]}}" >> $GITHUB_ENV
+          echo "GKE_ZONE=${{secrets.ORG_GCP_NON_PROD_ZONE}}" >> $GITHUB_ENV
+          echo "GKE_CLUSTER=${{secrets[steps.secretKeys.outputs.GKE_CLUSTER_KEY]}}" >> $GITHUB_ENV
+          echo "SLACK_WEBHOOK_URL=${{secrets.ORG_SLACK_NON_PROD_WEBHOOK}}" >> $GITHUB_ENV
+          echo "GOOGLE_APP_CREDENTIALS=${{secrets[steps.secretKeys.outputs.GOOGLE_APP_CREDENTIALS_KEY]}}" >> $GITHUB_ENV
+      
+      ############## prod ##############
+      - name: Initialize GitHub workflow variables for PROD environment
+        if: github.event.inputs.infraEnv == 'prod' || github.event_name == 'push'
+        run: |
+          echo "DEPLOYMENT_ENVIRONMENT=prod" >> $GITHUB_ENV
+          echo "GKE_PROJECT_CREDENTIALS=${{ secrets.prod_google_service_account_key }}" >> $GITHUB_ENV
+          echo "GKE_ZONE=${{secrets.ORG_GCP_PROD_ZONE}}" >> $GITHUB_ENV
+          echo "GKE_CLUSTER=${{secrets.prod_gke_cluster}}" >> $GITHUB_ENV
+          echo "SLACK_WEBHOOK_URL=${{secrets.ORG_SLACK_PROD_WEBHOOK}}" >> $GITHUB_ENV
+          echo "GOOGLE_APP_CREDENTIALS=${{secrets.prod_app_service_account_key}}" >> $GITHUB_ENV
+      # TODO: Current objective is to bring the App up and running
+      # TODO: These will be part of the second phase
+      # - name: Setup googleCredentialsJSON
+      #   run: |
+      #     cd src/config
+      #     echo $GOOGLE_TTS_CREDENTIALS | base64 --decode >> googleCredentials.json
+      - name: Setup googlePubSubCredentialsJSON
+        run: |
+          cd src/config
+          echo $GOOGLE_APP_CREDENTIALS | base64 --decode >> googlePubSubCredentials.json
+      # Setup gcloud CLI - Staging Creds for image access
+      - name: Initialize GCloud
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          version: "290.0.1"
+          service_account_email: ${{ env.GKE_IMAGE_PROJECT_EMAIL }}
+          service_account_key: ${{ env.GKE_IMAGE_PROJECT_KEY }}
+      # Configure docker to use the gcloud command-line tool as a credential helper
+      # Set up docker to authenticate
+      # via gcloud command-line tool.
+      - name: "Configure docker to use GCloud CLI"
+        run: |
+          gcloud auth configure-docker
+      # Build the Docker image
+      - name: Build
+        run: |
+          docker build -t $REGISTRY_HOSTNAME/$GKE_IMAGE_PROJECT/$IMAGE:$GITHUB_SHA \
+            -t $REGISTRY_HOSTNAME/$GKE_IMAGE_PROJECT/$IMAGE:$DEPLOYMENT_ENVIRONMENT \
+            --build-arg GITHUB_SHA=$GITHUB_SHA \
+            --build-arg GITHUB_REF=$GITHUB_REF .
+      # Push the Docker image to Google Container Registry
+      # REF: https://github.com/docker/cli/issues/267
+      # Cannot Publish with multiple tags
+      - name: Publish
+        run: |
+          docker push $REGISTRY_HOSTNAME/$GKE_IMAGE_PROJECT/$IMAGE:$GITHUB_SHA
+          docker push $REGISTRY_HOSTNAME/$GKE_IMAGE_PROJECT/$IMAGE:$DEPLOYMENT_ENVIRONMENT
+      - name: Checkout
+        uses: actions/checkout@v2
+      # INFO(105): jq .project_id google-credentials.json -r to eliminate quotes in the output
+      - name: Setup Additional ENV
+        run: |
+          echo $GKE_PROJECT_CREDENTIALS | base64 --decode >> google-credentials.json
+          echo "GKE_PROJECT=$(jq .project_id google-credentials.json -r)" >> $GITHUB_ENV
+      - name: Remove GKE_PROJECT_CREDENTIALS
+        run: |
+          rm google-credentials.json
+      # Reinitialize with dev project creds because kustomize needs to work on dev.
+      - name: Initialize GCloud For Dev Project
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          version: "290.0.1"
+          service_account_key: ${{ env.GKE_PROJECT_CREDENTIALS }}
+      # Set up kustomize
+      - name: Set up Kustomize
+        run: |
+          cd deployments/$DEPLOYMENT_ENVIRONMENT
+          curl -o kustomize --location https://github.com/kubernetes-sigs/kustomize/releases/download/v3.1.0/kustomize_3.1.0_linux_amd64
+          chmod u+x ./kustomize
+      # Deploy the Docker image to the GKE cluster
+      - name: Deploy
+        run: |
+          cd deployments/$DEPLOYMENT_ENVIRONMENT
+          gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $GKE_PROJECT
+          ./kustomize edit set image $REGISTRY_HOSTNAME/$GKE_IMAGE_PROJECT/$IMAGE:$GITHUB_SHA
+          ./kustomize build . | kubectl apply -f -
+      - name: Success Notification to Slack Channel
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: ":rocket: [${{env.DEPLOYMENT_ENVIRONMENT}}] ${{github.workflow}}"
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+      
+      - name: Failure Notification to Slack Channel
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: ":no_entry_sign: [${{env.DEPLOYMENT_ENVIRONMENT}}] ${{github.workflow}}"
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+
+          
