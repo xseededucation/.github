@@ -1,5 +1,5 @@
 {
-  "name": "XSEED Org k8s CI [Node.JS]",
+  "name": "XSEED Org k8s CI [Node.JS] - V1",
   "description": "XSEED Organization k8s CI workflow template.",
   "iconName": "xseed-tagline",
   "categories": [
