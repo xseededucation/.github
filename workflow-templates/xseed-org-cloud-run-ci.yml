@@ -51,6 +51,7 @@ jobs:
           echo "GKE_CLUSTER=${{secrets[steps.secretKeys.outputs.GKE_CLUSTER_KEY]}}" >> $GITHUB_ENV
           echo "SLACK_WEBHOOK_URL=${{secrets.ORG_SLACK_NON_PROD_WEBHOOK}}" >> $GITHUB_ENV
           echo "GOOGLE_APP_CREDENTIALS=${{secrets[steps.secretKeys.outputs.GOOGLE_APP_CREDENTIALS_KEY]}}" >> $GITHUB_ENV
+          echo "GCP_REGION=${{secrets.ORG_GCP_NON_PROD_REGION}}" >> $GITHUB_ENV
       
       ############## prod ##############
       - name: Initialize GitHub workflow variables for PROD environment
@@ -62,6 +63,7 @@ jobs:
           echo "GKE_CLUSTER=${{secrets.prod_gke_cluster}}" >> $GITHUB_ENV
           echo "SLACK_WEBHOOK_URL=${{secrets.ORG_SLACK_PROD_WEBHOOK}}" >> $GITHUB_ENV
           echo "GOOGLE_APP_CREDENTIALS=${{secrets.prod_app_service_account_key}}" >> $GITHUB_ENV
+          echo "GCP_REGION=${{secrets.ORG_GCP_PROD_REGION}}" >> $GITHUB_ENV
       
       - name: Setup APP Google Service Account
         run: |
@@ -125,7 +127,7 @@ jobs:
       # Deploy the Docker image to the Cloud Run
       - name: Deploy
         run: |
-          gcloud run deploy $IMAGE-$DEPLOYMENT_ENVIRONMENT --image $REGISTRY_HOSTNAME/$GKE_IMAGE_PROJECT/$IMAGE:$DEPLOYMENT_ENVIRONMENT --region $GKE_REGION --platform managed --allow-unauthenticated --project $GKE_PROJECT --quiet
+          gcloud run deploy $IMAGE-$DEPLOYMENT_ENVIRONMENT --image $REGISTRY_HOSTNAME/$GKE_IMAGE_PROJECT/$IMAGE:$DEPLOYMENT_ENVIRONMENT --region $GCP_REGION --platform managed --allow-unauthenticated --project $GKE_PROJECT --quiet
 
       - name: Success Notification to Slack Channel
         uses: 8398a7/action-slack@v3
