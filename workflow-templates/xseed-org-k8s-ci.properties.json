@@ -3,7 +3,7 @@
   "description": "XSEED Organization CI workflow template.",
   "iconName": "example-icon",
   "categories": [
-      "NodeJS"
+      "nodejs"
   ],
   "filePatterns": [
       "package.json$",
