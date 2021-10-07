@@ -1,0 +1,13 @@
+{
+  "name": "XSEED Org Cloud Run CI",
+  "description": "XSEED Organization Cloud Run CI workflow template.",
+  "iconName": "xseed-tagline",
+  "categories": [
+      "nodejs"
+  ],
+  "filePatterns": [
+      "package.json$",
+      "^Dockerfile",
+      ".*\\.md$"
+  ]
+}
