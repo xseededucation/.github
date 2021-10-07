@@ -30,9 +30,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Create .npmrc file
-        run: 'echo -e "//npm.pkg.github.com/:_authToken=${{env.NPM_GITHUB_REGISTRY_TOKEN}} \n@xseededucation:registry=https://npm.pkg.github.com/" > /home/runner/work/caa/caa/.npmrc'
-        shell: bash
+      
+      # - name: Create .npmrc file
+      #   run: 'echo -e "//npm.pkg.github.com/:_authToken=${{env.NPM_GITHUB_REGISTRY_TOKEN}} \n@xseededucation:registry=https://npm.pkg.github.com/" > /home/runner/work/caa/caa/.npmrc'
+      #   shell: bash
 
       - name: Generate outputs for secret keys
         id: secretKeys
@@ -64,6 +65,7 @@ jobs:
 
       - name: Setup APP Google Service Account
         run: |
+          mkdir -p src/config
           cd src/config
           echo $GOOGLE_APP_CREDENTIALS | base64 --decode >> googlePubSubCredentials.json
 

@@ -4,10 +4,5 @@
   "iconName": "xseed-tagline",
   "categories": [
       "nodejs"
-  ],
-  "filePatterns": [
-      "package.json$",
-      "^Dockerfile",
-      ".*\\.md$"
   ]
 }
