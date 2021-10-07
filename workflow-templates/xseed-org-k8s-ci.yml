@@ -61,16 +61,12 @@ jobs:
           echo "GKE_CLUSTER=${{secrets.prod_gke_cluster}}" >> $GITHUB_ENV
           echo "SLACK_WEBHOOK_URL=${{secrets.ORG_SLACK_PROD_WEBHOOK}}" >> $GITHUB_ENV
           echo "GOOGLE_APP_CREDENTIALS=${{secrets.prod_app_service_account_key}}" >> $GITHUB_ENV
-      # TODO: Current objective is to bring the App up and running
-      # TODO: These will be part of the second phase
-      # - name: Setup googleCredentialsJSON
-      #   run: |
-      #     cd src/config
-      #     echo $GOOGLE_TTS_CREDENTIALS | base64 --decode >> googleCredentials.json
-      - name: Setup googlePubSubCredentialsJSON
+
+      - name: Setup APP Google Service Account
         run: |
           cd src/config
           echo $GOOGLE_APP_CREDENTIALS | base64 --decode >> googlePubSubCredentials.json
+
       # Setup gcloud CLI - Staging Creds for image access
       - name: Initialize GCloud
         uses: google-github-actions/setup-gcloud@master
@@ -78,6 +74,15 @@ jobs:
           version: "290.0.1"
           service_account_email: ${{ env.GKE_IMAGE_PROJECT_EMAIL }}
           service_account_key: ${{ env.GKE_IMAGE_PROJECT_KEY }}
+      
+      # for any kind of file download from xseed-terraform-dev-bucket (rb-micro-services)
+      # uncomment the before step
+      ## Below is just a PLACEHOLDER command. Changes are to be done as needed.
+      # - name: Download credentials.zip
+      #   run: |
+      #    gsutil cp gs://xseed-terraform-dev-bucket/xseed-notification/secure-connect-notification-db-$DEPLOYMENT_ENVIRONMENT.zip ./src/config/secure-connect-notification-db-$DEPLOYMENT_ENVIRONMENT.zip
+      #    ls ./src/config
+
       # Configure docker to use the gcloud command-line tool as a credential helper
       # Set up docker to authenticate
       # via gcloud command-line tool.
