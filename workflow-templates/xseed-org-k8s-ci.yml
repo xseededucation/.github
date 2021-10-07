@@ -1,4 +1,6 @@
-name: PLACEHOLDER_WORKFLOW_NAME
+## NEED TO UPDATE VALUES IN LINE 3 and Line 17. Those are placeholder strings
+
+name: PLACEHOLDER_WORKFLOW_NAME ### THIS NEED TO BE CHANGED
 on:
   push:
     branches: [ $default-branch ]
@@ -12,7 +14,7 @@ on:
       
 env:
   GITHUB_SHA: ${{ github.sha }}
-  IMAGE: 'PLACEHOLDER_IMAGE_NAME' # Eg. caa, notification-backend-service
+  IMAGE: 'PLACEHOLDER_IMAGE_NAME' ### THIS NEED TO BE CHANGED to Eg. caa, notification-backend-service
   GKE_IMAGE_PROJECT: ${{ secrets.ORG_GCP_IMAGE_PROJECT }}
   GKE_IMAGE_PROJECT_KEY: ${{ secrets.ORG_GCP_IMAGE_PROJECT_KEY }}
   GKE_IMAGE_PROJECT_EMAIL: ${{ secrets.ORG_GCP_IMAGE_PROJECT_EMAIL }}
