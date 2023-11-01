@@ -9,7 +9,7 @@ Evidence : <Any GIF/Video/Report Sample as proof of the implementation for happy
 - [ ] Is the feature tested?
 - [ ] Is self review of code done?
 - [ ] Is Unit test coverage > 85%?
-- [ ] HLD & LLD reviewed and signed off from Desh / Shriram?
+- [ ] HLD & LLD reviewed and signed off from Desh
 - [ ] Is HLD, LLD and code implementation in sync? That is, any change to logic made during the coding phase been updated in LLD?
 - [ ] Is DB structure optimized?
 - [ ] Are DB Indexes added?
@@ -30,7 +30,7 @@ Evidence : <Any GIF/Video/Report Sample as proof of the implementation for happy
 - [ ] HLD reviewed?
 - [ ] LLD reviewed?
 - [ ] Code implemented as mentioned in LLD?
-- [ ] HLD & LLD reviewed and signed off from Desh / Shriram? 
+- [ ] HLD & LLD reviewed and signed off from Desh 
 - [ ] Is Unit test coverage > 85%?
 - [ ] Is DB structure optimized?
 - [ ] Are DB Indexes added?
