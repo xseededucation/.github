@@ -1,3 +1,0 @@
-name: "Release Tracking Workflow Template"
-description: "This workflow tracks PRs labeled 'ready-for-release' and moves them between project columns based on their merge status."
-file: ".github/workflows/release-tracking.yml"
