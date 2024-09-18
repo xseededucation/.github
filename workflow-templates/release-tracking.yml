@@ -1,0 +1,32 @@
+name: Manage PRs for Release
+
+on:
+  pull_request:
+    types: [labeled, closed]
+
+jobs:
+  track-pr-status:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Move to "Ready to be Merged" if labeled as 'ready-for-release'
+      if: github.event.label.name == 'ready-for-release' && github.event.action == 'labeled'
+      run: |
+        echo "Adding PR to Ready to be Merged column"
+        gh project item add --project 4 --content-id ${{ github.event.pull_request.node_id }}
+        gh project item update --id ${{ github.event.pull_request.node_id }} --field "Status" --value "Ready to Merge"
+
+    - name: Move to "Merged to Master" if PR is merged
+      if: github.event.pull_request.merged == true
+      run: |
+        echo "Moving PR to Merged to Master column"
+        gh project item update --id ${{ github.event.pull_request.node_id }} --field "Status" --value "Merged"
+
+    - name: Remove from "Ready to be Merged" if closed without merging
+      if: github.event.pull_request.merged == false && github.event.action == 'closed'
+      run: |
+        echo "PR was closed without merging, removing from project"
+        gh project item remove --project 4 --content-id ${{ github.event.pull_request.node_id }}
